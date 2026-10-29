@@ -55,16 +55,6 @@ spin() {
   return "$rc"
 }
 
-# celebrate <who> <n> — the finish: an XP bar that fills one block per skill, then a level-up.
-celebrate() {
-  local who="$1" n="$2" i
-  case "$n" in ''|0|*[!0-9]*) return 0;; esac
-  if [ ! -t 1 ]; then printf '%s learned %s skills.\n' "$who" "$n"; return 0; fi
-  printf '\n  XP '
-  for ((i = 0; i < n; i++)); do printf '\033[35m▰\033[0m'; sleep 0.03; done
-  printf ' %s/%s\n\n     \033[1;33m✦  L E V E L   U P  ✦\033[0m\n     %s learned %s skills\n\n' "$n" "$n" "$who" "$n"
-}
-
 OPENCODE=0
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -134,7 +124,7 @@ install_claude() {
     if enable_auto_update; then ok "auto-update on"; else manual_update=1; fi
   fi
 
-  local id skills
+  local id
   spin "$PLUGIN plugin" claude plugin install "$PLUGIN@$MARKETPLACE" || die "could not install $PLUGIN@$MARKETPLACE"
 
   # Converge: a plugin from this marketplace other than $PLUGIN is one it no longer ships.
@@ -143,9 +133,7 @@ install_claude() {
     claude plugin uninstall "$id" >/dev/null && printf '  removed %s (no longer in the marketplace)\n' "${id%@*}"
   done
 
-  skills="$(claude plugin details "$PLUGIN@$MARKETPLACE" 2>/dev/null | sed -n 's/^ *Skills (\([0-9][0-9]*\)).*/\1/p')" || skills=""
-  celebrate "Claude Code" "$skills"
-  printf 'Restart open Claude Code sessions to load the changes.\n'
+  printf '\nDone: everything is installed. Restart open Claude Code sessions to load it.\n'
   if [ "$manual_update" -eq 1 ]; then
     printf 'Could not turn on auto-update (no jq, python3 or node). Once: /plugin → Marketplaces → %s → Enable auto-update.\n' "$MARKETPLACE"
   fi
@@ -193,8 +181,7 @@ install_opencode() {
   done < "$bundle/$MANIFEST"
   printf '%s' "$kept" > "$ours"
   ok "skills in $OPENCODE_DIR"
-  celebrate "OpenCode" "$(grep -c . "$ours")"
-  printf 'Restart OpenCode to load the changes. Re-run with --opencode to update.\n'
+  printf '\nDone: everything is installed. Restart OpenCode to load it; re-run with --opencode to update.\n'
 }
 
 if [ "$OPENCODE" -eq 1 ]; then install_opencode; else install_claude; fi
