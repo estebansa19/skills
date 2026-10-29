@@ -1,0 +1,34 @@
+name: validate
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install shellcheck
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck
+
+      # For `claude plugin validate` and the install.sh test, which run against a throwaway
+      # CLAUDE_CONFIG_DIR; plugin commands need no login. It needs the Node 22 above: on an
+      # older Node, npm silently installs the last release that still ran there (2.1.197,
+      # which has no `plugin configure`).
+      - name: Install Claude Code
+        run: npm install -g @anthropic-ai/claude-code
+
+      # One script, so CI and "before committing" cannot drift: skill frontmatter, body
+      # size, relative links, subagent/agent-file agreement, work versions against their
+      # base skills, no project facts outside a work- skill, parse.mjs's own tests, the
+      # generated README, shellcheck, Claude Code's own manifest validation, the OpenCode
+      # bundle, and install.sh end to end.
+      - name: Check
+        run: bash .github/scripts/check.sh

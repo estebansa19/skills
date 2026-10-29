@@ -1,0 +1,40 @@
+name: release
+
+# Rebuild the OpenCode bundle on every push to master and publish it on the rolling
+# `opencode` release, where `install.sh --opencode` downloads it. Claude Code needs no
+# release: it installs and updates the plugin straight from the repo.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-opencode
+  cancel-in-progress: true
+
+jobs:
+  opencode:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build the bundle
+        run: |
+          node .github/scripts/build-opencode.mjs dist/bundle
+          tar -czf dist/opencode-skills.tar.gz -C dist/bundle .
+
+      - name: Publish to the opencode release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release view opencode >/dev/null 2>&1 || gh release create opencode \
+            --title "OpenCode skills" --latest=false \
+            --notes "The skills-only bundle for OpenCode, rebuilt on every push to master. Install with: install.sh --opencode"
+          gh release upload opencode dist/*.tar.gz --clobber

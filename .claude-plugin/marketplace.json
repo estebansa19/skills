@@ -1,0 +1,14 @@
+{
+  "name": "estebansa19",
+  "description": "My day-to-day Agent Skills: commit, PR, review and build workflows, plus the work-* add-ons.",
+  "owner": {
+    "name": "Esteban Alzate"
+  },
+  "plugins": [
+    {
+      "name": "core",
+      "source": "./",
+      "description": "Everyday workflows for any repository: god-mode as the front door to build, commit, create-pr, babysit, land, deep-review, how, why and teach, plus the code-style rules and principles they share. The work-* skills add work tickets, escalation debugging and triage, and approval gates on anything that posts."
+    }
+  ]
+}

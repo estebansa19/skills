@@ -1,0 +1,8 @@
+{
+  "name": "core",
+  "description": "Everyday workflows for any repository: god-mode as the front door to build, commit, create-pr, babysit, land, deep-review, how, why and teach, plus the code-style rules and principles they share. The work-* skills add work tickets, escalation debugging and triage, and approval gates on anything that posts.",
+  "author": {
+    "name": "Esteban Alzate"
+  },
+  "repository": "https://github.com/estebansa19/skills"
+}

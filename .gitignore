@@ -1,0 +1,4 @@
+# The OpenCode bundles the release workflow builds (.github/scripts/build-opencode.mjs).
+dist/
+# Left behind by the retired symlink installer; nothing reads it. Safe to delete.
+.generated/
