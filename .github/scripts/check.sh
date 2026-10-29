@@ -119,8 +119,33 @@ installer() {
   printf '  ok    installs and re-runs cleanly; OpenCode installs, prunes, never clobbers\n'
 }
 
+# The one-liner's path: install.sh piped into bash, with no checkout around it, and a gh that
+# records any call. The marketplace is this checkout and the bundle a file:// URL, so it runs
+# offline and tests this branch rather than whatever GitHub serves.
+piped_installer() {
+  local dir="$WORK/piped"
+  mkdir -p "$dir/bin"
+  printf '#!/bin/sh\ntouch "%s/gh-called"; exit 1\n' "$dir" > "$dir/bin/gh" && chmod +x "$dir/bin/gh"
+  node .github/scripts/build-opencode.mjs "$dir/bundle" >/dev/null || return 1
+  tar -czf "$dir/bundle.tar.gz" -C "$dir/bundle" . || return 1
+  run_piped() {
+    # shellcheck disable=SC2002  # a pipe on purpose: bash reads a script from a pipe, as from curl
+    cat install.sh | PATH="$dir/bin:$PATH" CLAUDE_CONFIG_DIR="$dir/claude" OPENCODE_SKILLS_DIR="$dir/opencode" \
+      SKILLS_REPO="$ROOT" SKILLS_BUNDLE_URL="file://$dir/bundle.tar.gz" bash -s -- "$@" >/dev/null
+  }
+
+  run_piped || { printf '  FAIL  piped install\n'; return 1; }
+  CLAUDE_CONFIG_DIR="$dir/claude" claude plugin list --json | grep -q '"core@estebansa19"' \
+    || { printf '  FAIL  piped install did not install core\n'; return 1; }
+  grep -q '"autoUpdate": true' "$dir/claude/settings.json" || { printf '  FAIL  piped install left auto-update off\n'; return 1; }
+  run_piped --opencode || { printf '  FAIL  piped --opencode\n'; return 1; }
+  [ -f "$dir/opencode/deep-review/SKILL.md" ] || { printf '  FAIL  piped --opencode installed nothing\n'; return 1; }
+  [ ! -e "$dir/gh-called" ] || { printf '  FAIL  the piped install called gh\n'; return 1; }
+  printf '  ok    installs core with auto-update on, downloads the OpenCode bundle, never calls gh\n'
+}
+
 # install.sh's settings edit, on its own: it sets autoUpdate on an existing entry and
-# leaves a file without one untouched. The GitHub path that calls it needs network access.
+# leaves a file without one untouched. piped_installer covers the common case end to end.
 auto_update() {
   local dir="$WORK/auto-update" before
   mkdir -p "$dir"
@@ -149,6 +174,7 @@ step "OpenCode bundle" opencode_bundle
 step "install.sh turns on auto-update in the settings file" auto_update
 if command -v claude >/dev/null 2>&1; then
   step "install.sh end to end (throwaway Claude config and OpenCode dir)" installer
+  step "install.sh piped into bash, as the one-liner runs it" piped_installer
 else
   printf '\n\033[1m== Claude Code checks\033[0m\n  SKIPPED — claude not on PATH (npm install -g @anthropic-ai/claude-code)\n'
 fi

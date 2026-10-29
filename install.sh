@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install the skills on this machine. No questions.
 #
-#   gh api repos/estebansa19/skills/contents/install.sh -H "Accept: application/vnd.github.raw" | bash
+#   curl -fsSL https://raw.githubusercontent.com/estebansa19/skills/HEAD/install.sh | bash
 #   … | bash -s -- --opencode        # OpenCode: the prebuilt skills-only bundle
 #
 # Claude Code (the default): registers this repo as the `estebansa19` plugin marketplace,
@@ -13,6 +13,8 @@
 # CI rebuilds on every push to master, and unpacks it into ~/.config/opencode/skills/. Only
 # the skill folders land — no checkout. Re-run to update.
 #
+# The repo is public: nothing here logs in or needs gh.
+#
 # Run from a checkout (./install.sh) and both read that checkout instead of GitHub: Claude
 # Code loads the plugin in place, so edits are live at the next session or /reload-plugins.
 #
@@ -21,6 +23,8 @@
 set -euo pipefail
 
 REPO="${SKILLS_REPO:-estebansa19/skills}"
+# SKILLS_BUNDLE_URL lets check.sh serve a bundle it just built (a file:// URL).
+BUNDLE_URL="${SKILLS_BUNDLE_URL:-https://github.com/$REPO/releases/download/opencode/opencode-skills.tar.gz}"
 MARKETPLACE="estebansa19"
 PLUGIN="core"
 OPENCODE_DIR="${OPENCODE_SKILLS_DIR:-$HOME/.config/opencode/skills}"
@@ -43,11 +47,6 @@ SOURCE="${SKILLS_SOURCE:-}"
 if [ -z "$SOURCE" ] && [ -f "${BASH_SOURCE[0]:-}" ]; then
   here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
   if [ -f "$here/.claude-plugin/marketplace.json" ]; then SOURCE="$here"; fi
-fi
-if [ -z "$SOURCE" ]; then
-  if ! command -v gh >/dev/null 2>&1 || ! gh auth status >/dev/null 2>&1; then
-    die "the repo is private, so this needs an authenticated gh: gh auth login && gh auth setup-git"
-  fi
 fi
 
 # Installed plugins from this marketplace, one name@marketplace id per line.
@@ -95,7 +94,7 @@ install_claude() {
     || die "Claude Code is not on PATH. Install it first, or pass --opencode for OpenCode only."
   printf 'Claude Code\n'
   claude plugin marketplace add "${SOURCE:-$REPO}" >/dev/null \
-    || die "could not add the marketplace. git needs stored credentials for the private repo: gh auth login && gh auth setup-git"
+    || die "could not add the marketplace ${SOURCE:-$REPO} (Claude Code's reason is above)"
   # A checkout loads in place, so only the GitHub marketplace has updates to fetch.
   local manual_update=0
   if [ -z "$SOURCE" ]; then
@@ -130,9 +129,8 @@ install_opencode() {
     node "$SOURCE/.github/scripts/build-opencode.mjs" "$bundle" >/dev/null
   else
     mkdir -p "$bundle"
-    gh release download opencode --repo "$REPO" --pattern "opencode-skills.tar.gz" --output - \
-      | tar -xzf - -C "$bundle" \
-      || die "could not download opencode-skills.tar.gz from the opencode release of $REPO"
+    curl -fsSL "$BUNDLE_URL" | tar -xzf - -C "$bundle" \
+      || die "could not download $BUNDLE_URL"
   fi
   [ -f "$bundle/$MANIFEST" ] || die "the bundle has no $MANIFEST — refusing to install it"
 

@@ -3,11 +3,13 @@
 ## A new machine
 
 ```bash
-gh auth login && gh auth setup-git     # once: the repo is private
-gh api repos/estebansa19/skills/contents/install.sh -H "Accept: application/vnd.github.raw" | bash
+curl -fsSL https://raw.githubusercontent.com/estebansa19/skills/HEAD/install.sh | bash
 ```
 
-That is the whole setup for Claude Code. `install.sh` asks nothing:
+That is the whole setup for Claude Code. The repo is public, so there is no login: it needs
+`curl` and Claude Code itself, and Claude Code clones the marketplace and fetches every later
+update without credentials. `HEAD` is the default branch, so the URL survives a rename.
+`install.sh` asks nothing:
 
 1. Registers this repo as the `estebansa19` plugin marketplace
    (`claude plugin marketplace add estebansa19/skills`).
@@ -23,9 +25,19 @@ That is the whole setup for Claude Code. `install.sh` asks nothing:
 The command line does not print the auto-update state; `/plugin` → **Marketplaces** shows
 it (the item reads **Disable auto-update** when it is on).
 
-`gh auth setup-git` matters beyond the install: Claude Code clones and refreshes a private
-marketplace with plain non-interactive `git`, so background updates only work when git
-already holds a credential (that, or an SSH key loaded in `ssh-agent`).
+### Without the script
+
+Inside a Claude Code session (v2.1.275 or later):
+
+```text
+/plugin install core --marketplace estebansa19/skills
+```
+
+From a shell it is `claude plugin install core --marketplace estebansa19/skills` (v2.1.292 or
+later). Either one adds the marketplace and installs `core`, but leaves auto-update off, as it
+is for every marketplace that is not Anthropic's. Turn it on once under `/plugin` →
+**Marketplaces** → `estebansa19` → **Enable auto-update**. No command-line flag does it, which
+is why the installer edits the settings file.
 
 ### A machine that had the `work` plugin
 
@@ -37,14 +49,15 @@ the old presets stay in the settings file and are ignored.
 ## OpenCode
 
 ```bash
-gh api repos/estebansa19/skills/contents/install.sh -H "Accept: application/vnd.github.raw" | bash -s -- --opencode
+curl -fsSL https://raw.githubusercontent.com/estebansa19/skills/HEAD/install.sh | bash -s -- --opencode
 ```
 
 OpenCode reads plain skill folders and does not load Claude Code plugins, so it gets a
 prebuilt bundle instead: `.github/workflows/release.yml` runs
 `.github/scripts/build-opencode.mjs` on each push to `master` and attaches
-`opencode-skills.tar.gz` to the rolling `opencode` release. `--opencode` downloads that one file and unpacks it into
-`~/.config/opencode/skills/` — skill folders only, no checkout, no git history.
+`opencode-skills.tar.gz` to the rolling `opencode` release. `--opencode` downloads that one
+file from the public release URL and unpacks it into `~/.config/opencode/skills/` — skill
+folders only, no checkout, no git history. It needs `curl` and `tar`, nothing else.
 
 - **Updating** is re-running the same command.
 - **It never clobbers.** A folder there that it did not install is skipped and reported;
@@ -96,8 +109,8 @@ done                            # review the list, then delete those links
 
 | Symptom | Cause and fix |
 |---|---|
-| `install: the repo is private…` | `gh auth login && gh auth setup-git` |
-| `could not add the marketplace` | git has no credential for github.com: `gh auth setup-git`, or load an SSH key into `ssh-agent` |
+| `could not add the marketplace` | Claude Code's reason is printed above it. `its source doesn't match` means it was added from a checkout: `claude plugin marketplace remove estebansa19`, then re-run |
+| `could not download …opencode-skills.tar.gz` | no network to github.com, or the `release` workflow has not published the bundle: check its last run |
 | A skill is listed twice, `/work:…` beside `/core:work-…` | the old `work` plugin is still installed — re-run the installer |
 | Every skill appears twice | old symlinks are still in `~/.claude/skills` — see above |
 | Updates never arrive | auto-update is off for the marketplace — re-run the installer, or `/plugin` → Marketplaces → Enable auto-update |
