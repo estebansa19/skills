@@ -32,18 +32,22 @@ MANIFEST=".estebansa19-skills"
 
 die() { printf 'install: %s\n' "$1" >&2; exit 1; }
 
+# One scratch dir for the whole run, removed however it ends, Ctrl-C included.
+SCRATCH="$(mktemp -d)"
+trap 'rm -rf "$SCRATCH"' EXIT
+
 # ok <label> — a finished step.
 ok() { if [ -t 1 ]; then printf '\r  \033[32m✔\033[0m %s\033[K\n' "$1"; else printf '  ✔ %s\n' "$1"; fi; }
 
 # spin <label> <command…> — a slow step behind a pulsing bar on a terminal, plain in a pipe or
 # a log. Its stderr is held back and shown only if it fails, so the bar's line stays clean.
+# Its stdin is /dev/null: piped into bash, stdin is the rest of this script.
 spin() {
-  local label="$1" err pid rc=0 i=0
+  local label="$1" err="$SCRATCH/stderr" pid rc=0 i=0
   local frames=(▱▱▱▱ ▰▱▱▱ ▰▰▱▱ ▰▰▰▱ ▰▰▰▰ ▱▰▰▰ ▱▱▰▰ ▱▱▱▰)
   shift
-  if [ ! -t 1 ]; then "$@" >/dev/null && ok "$label"; return; fi
-  err="$(mktemp)"
-  "$@" >/dev/null 2>"$err" &
+  if [ ! -t 1 ]; then "$@" >/dev/null </dev/null && ok "$label"; return; fi
+  "$@" >/dev/null 2>"$err" </dev/null &
   pid=$!
   while kill -0 "$pid" 2>/dev/null; do
     printf '\r  \033[35m%s\033[0m %s' "${frames[i++ % ${#frames[@]}]}" "$label"
@@ -51,7 +55,6 @@ spin() {
   done
   wait "$pid" || rc=$?
   if [ "$rc" -eq 0 ]; then ok "$label"; else printf '\r  \033[31m✖\033[0m %s\033[K\n' "$label"; cat "$err" >&2; fi
-  rm -f "$err"
   return "$rc"
 }
 
@@ -140,11 +143,7 @@ install_claude() {
 }
 
 install_opencode() {
-  local tmp bundle name
-  tmp="$(mktemp -d)"
-  # shellcheck disable=SC2064  # expand now: tmp is local and gone by the time EXIT fires
-  trap "rm -rf '$tmp'" EXIT
-  bundle="$tmp/bundle"
+  local bundle="$SCRATCH/bundle" name
   printf 'OpenCode\n'
   if [ -n "$SOURCE" ]; then
     command -v node >/dev/null 2>&1 || die "building the bundle from a checkout needs node"

@@ -77,6 +77,7 @@ the skill folders, from the \`opencode\` release CI rebuilds on every push to \`
 
 Already in a Claude Code session? \`/plugin install ${manifest.name} --marketplace ${repo}\` installs it
 too, with auto-update off until you turn it on under \`/plugin\` → **Marketplaces**.
+
 Details: [docs/install.md](./docs/install.md).
 
 ## Skills

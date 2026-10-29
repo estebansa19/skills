@@ -26,6 +26,7 @@ the skill folders, from the `opencode` release CI rebuilds on every push to `mas
 
 Already in a Claude Code session? `/plugin install core --marketplace estebansa19/skills` installs it
 too, with auto-update off until you turn it on under `/plugin` → **Marketplaces**.
+
 Details: [docs/install.md](./docs/install.md).
 
 ## Skills
