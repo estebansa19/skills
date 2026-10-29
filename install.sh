@@ -32,6 +32,39 @@ MANIFEST=".estebansa19-skills"
 
 die() { printf 'install: %s\n' "$1" >&2; exit 1; }
 
+# ok <label> — a finished step.
+ok() { if [ -t 1 ]; then printf '\r  \033[32m✔\033[0m %s\033[K\n' "$1"; else printf '  ✔ %s\n' "$1"; fi; }
+
+# spin <label> <command…> — a slow step behind a pulsing bar on a terminal, plain in a pipe or
+# a log. Its stderr is held back and shown only if it fails, so the bar's line stays clean.
+spin() {
+  local label="$1" err pid rc=0 i=0
+  local frames=(▱▱▱▱ ▰▱▱▱ ▰▰▱▱ ▰▰▰▱ ▰▰▰▰ ▱▰▰▰ ▱▱▰▰ ▱▱▱▰)
+  shift
+  if [ ! -t 1 ]; then "$@" >/dev/null && ok "$label"; return; fi
+  err="$(mktemp)"
+  "$@" >/dev/null 2>"$err" &
+  pid=$!
+  while kill -0 "$pid" 2>/dev/null; do
+    printf '\r  \033[35m%s\033[0m %s' "${frames[i++ % ${#frames[@]}]}" "$label"
+    sleep 0.1
+  done
+  wait "$pid" || rc=$?
+  if [ "$rc" -eq 0 ]; then ok "$label"; else printf '\r  \033[31m✖\033[0m %s\033[K\n' "$label"; cat "$err" >&2; fi
+  rm -f "$err"
+  return "$rc"
+}
+
+# celebrate <who> <n> — the finish: an XP bar that fills one block per skill, then a level-up.
+celebrate() {
+  local who="$1" n="$2" i
+  case "$n" in ''|0|*[!0-9]*) return 0;; esac
+  if [ ! -t 1 ]; then printf '%s learned %s skills.\n' "$who" "$n"; return 0; fi
+  printf '\n  XP '
+  for ((i = 0; i < n; i++)); do printf '\033[35m▰\033[0m'; sleep 0.03; done
+  printf ' %s/%s\n\n     \033[1;33m✦  L E V E L   U P  ✦\033[0m\n     %s learned %s skills\n\n' "$n" "$n" "$who" "$n"
+}
+
 OPENCODE=0
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -93,17 +126,16 @@ install_claude() {
   command -v claude >/dev/null 2>&1 \
     || die "Claude Code is not on PATH. Install it first, or pass --opencode for OpenCode only."
   printf 'Claude Code\n'
-  claude plugin marketplace add "${SOURCE:-$REPO}" >/dev/null \
+  spin "$MARKETPLACE marketplace" claude plugin marketplace add "${SOURCE:-$REPO}" \
     || die "could not add the marketplace ${SOURCE:-$REPO} (Claude Code's reason is above)"
   # A checkout loads in place, so only the GitHub marketplace has updates to fetch.
   local manual_update=0
   if [ -z "$SOURCE" ]; then
-    enable_auto_update || manual_update=1
+    if enable_auto_update; then ok "auto-update on"; else manual_update=1; fi
   fi
 
-  local id
-  claude plugin install "$PLUGIN@$MARKETPLACE" >/dev/null || die "could not install $PLUGIN@$MARKETPLACE"
-  printf '  installed %s\n' "$PLUGIN"
+  local id skills
+  spin "$PLUGIN plugin" claude plugin install "$PLUGIN@$MARKETPLACE" || die "could not install $PLUGIN@$MARKETPLACE"
 
   # Converge: a plugin from this marketplace other than $PLUGIN is one it no longer ships.
   for id in $(installed_ids); do
@@ -111,6 +143,8 @@ install_claude() {
     claude plugin uninstall "$id" >/dev/null && printf '  removed %s (no longer in the marketplace)\n' "${id%@*}"
   done
 
+  skills="$(claude plugin details "$PLUGIN@$MARKETPLACE" 2>/dev/null | sed -n 's/^ *Skills (\([0-9][0-9]*\)).*/\1/p')" || skills=""
+  celebrate "Claude Code" "$skills"
   printf 'Restart open Claude Code sessions to load the changes.\n'
   if [ "$manual_update" -eq 1 ]; then
     printf 'Could not turn on auto-update (no jq, python3 or node). Once: /plugin → Marketplaces → %s → Enable auto-update.\n' "$MARKETPLACE"
@@ -126,11 +160,12 @@ install_opencode() {
   printf 'OpenCode\n'
   if [ -n "$SOURCE" ]; then
     command -v node >/dev/null 2>&1 || die "building the bundle from a checkout needs node"
-    node "$SOURCE/.github/scripts/build-opencode.mjs" "$bundle" >/dev/null
+    spin "skills bundle" node "$SOURCE/.github/scripts/build-opencode.mjs" "$bundle" \
+      || die "could not build the bundle"
   else
     mkdir -p "$bundle"
-    curl -fsSL "$BUNDLE_URL" | tar -xzf - -C "$bundle" \
-      || die "could not download $BUNDLE_URL"
+    download() { curl -fsSL "$BUNDLE_URL" | tar -xzf - -C "$bundle"; }
+    spin "skills bundle" download || die "could not download $BUNDLE_URL"
   fi
   [ -f "$bundle/$MANIFEST" ] || die "the bundle has no $MANIFEST — refusing to install it"
 
@@ -155,9 +190,10 @@ install_opencode() {
     cp -R "$bundle/$name" "$OPENCODE_DIR/$name"
     kept="$kept$name
 "
-    printf '  installed %s\n' "$name"
   done < "$bundle/$MANIFEST"
   printf '%s' "$kept" > "$ours"
+  ok "skills in $OPENCODE_DIR"
+  celebrate "OpenCode" "$(grep -c . "$ours")"
   printf 'Restart OpenCode to load the changes. Re-run with --opencode to update.\n'
 }
 
