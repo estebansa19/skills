@@ -12,10 +12,10 @@ modified to fit my requirements; its MIT notice is kept in the [LICENSE](./LICEN
 
 ## Install
 
-One command, no questions:
+One command, no login, no questions:
 
 ```bash
-gh api repos/estebansa19/skills/contents/install.sh -H "Accept: application/vnd.github.raw" | bash
+curl -fsSL https://raw.githubusercontent.com/estebansa19/skills/HEAD/install.sh | bash
 ```
 
 For OpenCode, append `-s -- --opencode`.
@@ -23,6 +23,10 @@ For OpenCode, append `-s -- --opencode`.
 The installer registers this repo as the `estebansa19` plugin marketplace with auto-update on
 and installs the `core` plugin; Claude Code keeps it current from there. OpenCode gets only
 the skill folders, from the `opencode` release CI rebuilds on every push to `master`.
+
+Already in a Claude Code session? `/plugin install core --marketplace estebansa19/skills` installs it
+too, with auto-update off until you turn it on under `/plugin` → **Marketplaces**.
+
 Details: [docs/install.md](./docs/install.md).
 
 ## Skills
