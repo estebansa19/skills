@@ -23,6 +23,8 @@ it).
 
 - The time the user gives is the whole session, from your first message to the last, including
   writing and running code. Plan the steps to fit it at a beginner's pace before writing anything.
+- Reading counts: at about 150 words a minute, a 10-minute session holds about 1,000 words of
+  text in all, fewer when code takes long to run.
 - When the request holds more than fits, teach the core in depth and drop the rest. Say in the
   first message what you dropped, as a follow-up session.
 
@@ -58,7 +60,8 @@ it).
 6. **Show it in real life**, where it applies: where it sits in a real system and how real code
    uses it. Use a diagram, a short excerpt quoted from a real project or config, or a small facade
    of the real application with only the parts that matter; run it only when running shows
-   something the excerpt can't. Never build the real application.
+   something the excerpt can't. Show only the part of a real config that matches what the lesson
+   built. Never build the real application.
 7. **Connect it to their world** once the general idea is clear: their codebase, a tool they use,
    a system they've read about.
 8. **Close** with when to use it and when not, the common pitfalls, and where to go deeper.
@@ -77,6 +80,8 @@ it).
 ## Bare-minimum code
 
 - The fewest lines that show the idea, each example on one screen.
+- Every file you write is shown in the step that uses it; no hidden helper scripts. Start a step's
+  servers with plain commands shown in the step, and stop them before the turn ends.
 - Nothing the idea doesn't need: no threads, queues, locks, pools, retries, CLI options or test
   harnesses, unless that is the idea this step teaches.
 - Pick the language whose standard library does the plumbing in the fewest lines (an HTTP server
