@@ -66,9 +66,10 @@ it).
 ## Teach while you build
 
 - The lesson starts in the first message. Never build everything first and teach after.
-- When a step's code has run, your next output is that step as visible text (the explanation, the
-  code, its real output), before any other tool call. A step that exists only in your thinking was
-  never sent.
+- A message with text and no tool call ends your turn, so each finished step goes out with the
+  next step's first tool call: in one message, write the step (the explanation, the code, its real
+  output), then make the call that starts the next step. Never make that call without the previous
+  step's text above it. Thinking is not sent. The last step goes out with the close.
 - Before the close, check that every step you refer to was sent.
 - Your own mistakes and fixes are not lesson content. Fix them and move on; mention one only if it
   changes what the user should believe, in one line at the end.
