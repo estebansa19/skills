@@ -45,7 +45,7 @@ Everyday workflows for any repository: god-mode as the front door to build, comm
 | [`/core:how`](./skills/how/SKILL.md) | Explains how a subsystem works, for someone about to change it or new to it: what it is, the runtime flow, where things live and the gotchas. |
 | [`/core:land`](./skills/land/SKILL.md) | Merges a GitHub PR once it is verified, without asking again: checks it is merge-ready (running babysit first when it is not), has a fresh agent that did not write the change verify the… |
 | [`principles`](./skills/principles/SKILL.md) | Named engineering principles, one rule each with when it applies: four everyday habits (measure the number, design it twice, label the evidence, look for the same problem elsewhere) plus… *(loaded by another skill, not typed)* |
-| [`/core:teach`](./skills/teach/SKILL.md) | Teaches a concept, a technology or a piece of code from scratch, assuming no prior knowledge: a plain definition first, then the idea built up one layer at a time with code snippets… |
+| [`/core:teach`](./skills/teach/SKILL.md) | Teaches a concept, a technology or a piece of code from scratch, assuming no prior knowledge, inside the time the user gives: theory first, then the smallest runnable example, then one… |
 | [`/core:why`](./skills/why/SKILL.md) | Finds out why code is the way it is: the design rationale, the tradeoff, the incident or request that shaped it. |
 
 ### Work
