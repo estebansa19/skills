@@ -1,6 +1,6 @@
 ---
 name: teach
-description: "Teaches a concept, a technology or a piece of code from scratch, assuming no prior knowledge, inside the time the user gives: theory first, then the smallest runnable example, then one new idea per step, each step built, run and explained before the next so the lesson starts at once. Diagrams where a picture explains it, bare-minimum code and real output where behavior does, and how real systems use it. For code in front of the user, runs how and why first. Asks no questions along the way. Use for 'teach me X', 'explain Y from scratch', 'I want to learn Z', 'compare A and B', a timed lab, or run /teach."
+description: "Teaches a concept, a technology or a piece of code from scratch, assuming no prior knowledge, inside the time the user gives: theory first, then the smallest runnable example, then one new idea per step, one step per turn: each step built, run and shown, and 'next' continues. Diagrams where a picture explains it, bare-minimum code and real output where behavior does, and how real systems use it. For code in front of the user, runs how and why first. Asks no questions along the way. Use for 'teach me X', 'explain Y from scratch', 'I want to learn Z', 'compare A and B', a timed lab, or run /teach."
 compatibility: "Runs examples with the language's own runtime. Fans out through how and why on Claude Code."
 metadata:
   version: "2.0"
@@ -63,14 +63,14 @@ it).
    a system they've read about.
 8. **Close** with when to use it and when not, the common pitfalls, and where to go deeper.
 
-## Teach while you build
+## One step per turn
 
-- The lesson starts in the first message. Never build everything first and teach after.
-- A message with text and no tool call ends your turn, so each finished step goes out with the
-  next step's first tool call: in one message, write the step (the explanation, the code, its real
-  output), then make the call that starts the next step. Never make that call without the previous
-  step's text above it. Thinking is not sent. The last step goes out with the close.
-- Before the close, check that every step you refer to was sent.
+- The first turn is the theory, the plan and the first diagram, with no code. End it by saying
+  that "next" continues.
+- Every later turn is one step: build and run that step only, then end your turn with it (the
+  explanation, the code, its real output). Never build ahead of the step you are sending.
+- The user's next message continues the lesson: "next" moves on; a question is answered first.
+- The last turn is the close.
 - Your own mistakes and fixes are not lesson content. Fix them and move on; mention one only if it
   changes what the user should believe, in one line at the end.
 
