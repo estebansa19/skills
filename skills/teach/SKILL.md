@@ -1,9 +1,9 @@
 ---
 name: teach
-description: "Teaches a concept, a technology or a piece of code from scratch, assuming no prior knowledge: a plain definition first, then the idea built up one layer at a time with code snippets, runnable examples and diagrams, running the code to show real behavior and real numbers (a working setup of the thing, two approaches or two languages side by side). For code in front of the user, runs how and why first. Asks no questions along the way. Use for 'teach me X', 'explain Y from scratch', 'I want to learn Z', 'compare A and B', or run /teach."
+description: "Teaches a concept, a technology or a piece of code from scratch, assuming no prior knowledge, inside the time the user gives: theory first, then the smallest runnable example, then one new idea per step, each step built, run and explained before the next so the lesson starts at once. Diagrams where a picture explains it, bare-minimum code and real output where behavior does, and how real systems use it. For code in front of the user, runs how and why first. Asks no questions along the way. Use for 'teach me X', 'explain Y from scratch', 'I want to learn Z', 'compare A and B', a timed lab, or run /teach."
 compatibility: "Runs examples with the language's own runtime. Fans out through how and why on Claude Code."
 metadata:
-  version: "1.0"
+  version: "2.0"
 allowed-tools: Read, Grep, Glob, Write, WebSearch, WebFetch, Agent
 argument-hint: "[a concept, a source to learn from, or code to understand]"
 user-invocable: true
@@ -12,11 +12,19 @@ user-invocable: true
 # Teach
 
 The goal is that the user understands it: what it is, how it works, why it exists, and when to use
-it. Assume they know nothing about it and start from scratch. Don't ask them questions, don't quiz
-them, and don't ask for predictions; the explanation and the examples do the work.
+it. Assume they know nothing about it, including the tools and vocabulary around it, and start from
+scratch. Don't ask them questions, don't quiz them, and don't ask for predictions; the explanation
+and the examples do the work.
 
 Let `<dir>` be the directory holding this SKILL.md (`${CLAUDE_SKILL_DIR}` where the harness sets
 it).
+
+## Fit the time
+
+- The time the user gives is the whole session, from your first message to the last, including
+  writing and running code. Plan the steps to fit it at a beginner's pace before writing anything.
+- When the request holds more than fits, teach the core in depth and drop the rest. Say in the
+  first message what you dropped, as a follow-up session.
 
 ## Ground it
 
@@ -29,41 +37,60 @@ it).
 - **An ambiguous topic** ("replication" in which system?): take the common meaning, say which in a
   line, and go.
 
-## Build it from scratch
+## Build it from scratch, one step at a time
 
-1. **Plain definition.** What it is in general terms, its common name, and the problem it solves,
-   in a sentence or two.
-2. **The mechanism, one layer at a time.** Each layer adds one idea on top of the last, starting
-   from the smallest version that works. Define every term the first time it appears, and keep
-   one name per concept from start to finish.
-3. **Show each layer.** Follow each idea with a short snippet or example that makes it concrete.
-   When running it shows what words can't (behavior, a failure, timing, size), run it and show
-   the real output.
-4. **Draw what moves.** For three or more moving parts, a series of diagrams where each redraws
-   the last and adds one part. Mermaid for flows and structure, ASCII when simpler.
-5. **Connect it to their world** once the general idea is clear: their codebase, a tool they use,
+1. **Theory first, no code.** What it is in plain words, its common name, the problem it solves,
+   and a diagram of the parts. Code comes after.
+2. **The smallest version that works.** The first example is a few lines that show the bare idea,
+   even if it is naive.
+3. **One new idea per step.** Each step adds one idea to the last, in its diagram, its code, or
+   both. A code step shows what changed, runs it, and explains the output. A step that needs two
+   new ideas is two steps. Define every term the first time it appears, and keep one name per
+   concept.
+4. **A diagram or code, whichever shows it.** A step about structure or flow (what talks to what,
+   in what order) can be a diagram alone; a step about behavior (output, a failure, timing) needs
+   code that runs. Start with diagrams until the parts are known, then code. For three or more
+   moving parts, each step redraws the diagram with its one new part. Mermaid for flows and
+   structure, ASCII when simpler.
+5. **A tool is a new concept.** Before using a tool (a proxy, a database, a framework), explain
+   what it is and what each part of its config means, from zero. Never show its config or its
+   errors before that.
+6. **Show it in real life**, where it applies: where it sits in a real system and how real code
+   uses it. Use a diagram, a short excerpt quoted from a real project or config, or a small facade
+   of the real application with only the parts that matter; run it only when running shows
+   something the excerpt can't. Never build the real application.
+7. **Connect it to their world** once the general idea is clear: their codebase, a tool they use,
    a system they've read about.
-6. **Close** with when to use it and when not, the common pitfalls, and where to go deeper.
+8. **Close** with when to use it and when not, the common pitfalls, and where to go deeper.
 
-## Examples that run
+## Teach while you build
 
-Choose the demonstration that fits the topic, for example a minimal working setup of the thing
-(two processes replicating a write), the same task in two languages or two approaches side by
-side, or the failure it prevents reproduced and then fixed.
+- The lesson starts in the first message. Send each step as soon as it is ready (a code step once
+  it has run, with its real output), then build the next one. Never build everything first and
+  teach after.
+- Your own mistakes and fixes are not lesson content. Fix them and move on; mention one only if it
+  changes what the user should believe, in one line at the end.
 
-- Keep each example small and self-contained, runnable with the language's own runtime and
-  nothing else unless the topic is the tool.
-- Write them in a scratch folder (the session's scratchpad when there is one), not the user's
-  project, unless they ask for the files there.
+## Bare-minimum code
+
+- The fewest lines that show the idea, each example on one screen.
+- Nothing the idea doesn't need: no threads, queues, locks, pools, retries, CLI options or test
+  harnesses, unless that is the idea this step teaches.
+- Pick the language whose standard library does the plumbing in the fewest lines (an HTTP server
+  in one line), so the code shows only the concept. Say the choice in a line.
+- Measure with the simplest tool that shows the number (`curl -w`, `time`, a three-line loop). A
+  comparison runs the same input on both sides and says what limits the result.
 - Run every example before showing its output, and show only output you actually got. Numbers
   come from this machine and say so.
-- A comparison runs the same input on both sides, warms up, repeats, and says what limits the
-  result (Explain the Number in the `principles` skill).
+- Write examples in a scratch folder (the session's scratchpad when there is one), not the user's
+  project, unless they ask for the files there. Files the user keeps are one small file per step.
 
 ## How to say it
 
-- **Complete, in one pass.** Give the whole from-scratch explanation, each layer short. Follow-ups
+- **Short steps.** A step is a few sentences and its diagram, or its code and output. Follow-ups
   go deeper wherever the user points.
+- **Short paragraphs.** At most three sentences, one idea each. Three or more parallel items are a
+  list or a table, not a paragraph.
 - **Make it click.** The concrete mechanism, not a metaphor or a preview of what's coming. Walk
   through what happens step by step. A list of functions and constants is reference, not teaching.
 - **Plain spoken English, tight not terse.** No framing labels ("the key insight", "TL;DR"), no
