@@ -27,7 +27,7 @@ jobs:
 
       # One script, so CI and "before committing" cannot drift: skill frontmatter, body
       # size, relative links, subagent/agent-file agreement, work versions against their
-      # base skills, no project facts outside a work- skill, parse.mjs's own tests, the
+      # base skills, no project facts outside a work- skill, queue.mjs's own tests, the
       # generated README, shellcheck, Claude Code's own manifest validation, the OpenCode
       # bundle, and install.sh end to end.
       - name: Check

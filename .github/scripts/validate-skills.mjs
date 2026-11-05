@@ -9,7 +9,7 @@
  * `skills-ref validate` accepts ONLY the six spec fields and rejects everything else.
  * But this library deliberately uses Claude Code's frontmatter extensions — chiefly
  * `disable-model-invocation`, without which Claude can auto-run /work-implement or a
- * --post triage mid-task, which is a safety property we are not willing to trade away.
+ * triage that posts mid-task, which is a safety property we are not willing to trade away.
  *
  * So we do both, which is strictly stronger than either alone:
  *   1. run `skills-ref validate` against a copy of the skill whose frontmatter is
