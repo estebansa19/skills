@@ -1,111 +1,83 @@
-# Analysis contract (S2)
+# Analysis contract
 
-Read by the orchestrator before S2 and by every analysis subagent: the `core:work-triage-analyst`
-agent, or a `general-purpose` fallback handed the same path. It is the one source for what
-they do and return, so both produce the same result object.
+Instructions for the analyst of one escalation: the `core:work-triage-analyst` agent, a
+`general-purpose` subagent handed the same prompt, or the orchestrator inline. Return only the
+JSON object below: no prose, no code fence.
 
-Each ticket is analyzed by **one isolated subagent**. The orchestrator injects the cloudId and
-the key; the subagent returns **only** the JSON result object below — no prose, no markdown
-fence — so the orchestrator can parse it directly.
+**Read only.** No Jira edits or comments, no Slack messages or reactions, no file changes, no
+commands. Never fetch Graylog or other login-gated logs: when the ticket cites them, set
+`logsNeedManualCheck`. Never query a database or BigQuery.
 
-### Classification — exactly one of
+## Steps
 
-- **needs-info** — not enough in the ticket to act: no reproduction steps, no identifiers
-  (account / subscription / invoice / transaction id or code), no concrete error, or the ask is
-  unclear. The right first move is to ask the reporter for specifics.
-- **data-cleanup** — the code is (probably) fine; specific records are in a bad or inconsistent
-  state and need a targeted data correction, backfill, re-sync, or manual action (e.g. "void
-  these refund transactions", "un-stick this invoice", "correct this balance"). A code change is
-  *not* the expected outcome.
-- **bug** — a plausible defect in the product's code, with enough information to start
-  investigating in code; the expected outcome is a code change.
+1. Fetch the ticket with `getJiraIssue` (`responseContentFormat: "markdown"`, fields `summary,
+   description, status, issuetype, priority, labels, assignee, comment`). Read the comments:
+   they often narrow the scope or add identifiers.
+2. Classify it as exactly one of:
+   - `bug`: a plausible defect in the product's code; the expected outcome is a code change.
+     A UI defect (layout, spacing, copy, a broken interaction) is a bug.
+   - `data-cleanup`: the code is probably fine; named records are in a bad state and need a
+     targeted correction. A latent bug that caused it goes in `rootCause`.
+   - `needs-info`: the ticket can't be acted on: no identifiers, no concrete error or
+     expected behavior, or an unclear ask. Can't tell bug from data-cleanup → `needs-info`.
 
-The Jira **issue type** (e.g. `Data-Cleanup`, `Bug`) is a strong prior — weigh it, but decide on
-the ticket's content. Tie-breaks: can't tell bug vs data-cleanup for lack of detail →
-**needs-info**; a clearly bad data state for named records → **data-cleanup**, even if a latent
-bug caused it (note the suspected bug in the analysis).
+   The Jira issue type is a strong prior, not the answer.
+3. Trace it in the checkout at the working directory by reading code, never from memory: Serena
+   (`find_symbol`, `find_referencing_symbols`, `get_symbols_overview`) when connected, else
+   Grep/Glob/Read. Follow the path from the reported surface (endpoint, job, model, page) to the
+   line that decides the wrong outcome. Time-box it: stop at a located cause or after about
+   twenty files.
+4. Decide `quickFix` with the rubric below, then return the object.
 
-### Result schema (the subagent's entire output)
+## Quick-fix rubric
+
+`quickFix.verdict` is `yes` only when every line holds for its kind; otherwise `no`, with the
+lines that failed in `reasons`.
+
+- **All kinds:** the class is not `needs-info`; the ask is unambiguous (the ticket states the
+  expected behavior or the target state); no product, merchant or other-team decision is
+  needed; the latest comments don't say it is resolved, worked around or waiting on someone
+  (otherwise put the confirming question in `missingInfo`); about an hour of work including
+  the test.
+- **`code`** (backend): the cause is located to specific lines with `high` confidence; the fix
+  is about 20 changed lines or fewer in at most three files; no migration, no new feature
+  flag, no public API or webhook contract change.
+- **`frontend`:** the defect is in one component or stylesheet (spacing, alignment, a missing
+  condition, copy) and the fix doesn't change behavior shared across pages.
+- **`data`:** the records are identified in the ticket (ids, codes, a precise query); the target
+  state is stated; one application's data; non-destructive (no deletes, no closing sites or
+  accounts); under 10,000 records; an existing model method or a few attribute updates can
+  make the correction.
+
+## Result
 
 ```json
 {
-  "jiraKey":        "EE-1234",
-  "summary":        "<issue title>",
-  "status":         "<Jira status, e.g. In Progress>",
-  "labels":         ["<current Jira labels>"],
+  "key": "EE-1234",
+  "title": "<ticket summary>",
+  "status": "<Jira status>",
+  "assignee": "<display name or null>",
   "classification": "bug | data-cleanup | needs-info",
-  "rationale":      "<1–2 sentences: why this class>",
-  "analysis":       {}
+  "problem": "<2-3 sentences: what is wrong, for whom, since when, in our words>",
+  "rootCause": [
+    { "hypothesis": "<what goes wrong and why>", "evidence": "<path:line or ticket fact>", "confidence": "high | medium | low" }
+  ],
+  "filesToReview": ["path/to/file.rb:120 — <why this file>"],
+  "reproduction": {
+    "steps": "<how to trigger it locally, or null>",
+    "specTarget": "<the existing spec nearest the cause, or null>"
+  },
+  "missingInfo": ["<question for the reporter>"],
+  "logsNeedManualCheck": false,
+  "quickFix": {
+    "verdict": "yes | no",
+    "kind": "code | frontend | data | null",
+    "change": "<the fix in one sentence, or null>",
+    "reasons": ["<each rubric line that decided it>"]
+  }
 }
 ```
 
-`analysis` is one of the three shapes, keyed to `classification`:
-
-- **bug** →
-  ```json
-  {
-    "reproducible":      "true | false | unknown",
-    "relevantFiles":     ["path/to/file.rb:120"],
-    "hypotheses":        [{ "desc": "...", "confidence": "high|medium|low", "estDiffLines": 0 }],
-    "overallConfidence": "high|medium|low",
-    "graylogFlagNeeded": false
-  }
-  ```
-  `relevantFiles` most-relevant first (≤ ~6); `hypotheses` most-likely first (≤ 3);
-  `graylogFlagNeeded` is `true` when the ticket cites Graylog/logs as evidence (never fetched).
-- **data-cleanup** →
-  ```json
-  { "scope": "...", "affectedRecordsSummary": "...", "webhookSilenceRecommended": false }
-  ```
-  - `scope`: ≤ ~15-word action summary used **verbatim** in the Slack reply one-liner — keep it
-    concise and action-focused (e.g. `void 2 refund transactions on the Acme site`). Detail
-    goes in `affectedRecordsSummary`, not here.
-  - `affectedRecordsSummary`: specific record identifiers and count — UUIDs, invoice numbers,
-    transaction IDs (from description **and** comments; always check comments for narrowed scope
-    or added identifiers).
-  - `webhookSilenceRecommended`: follow the merchant's explicit instruction when the ticket states one.
-- **needs-info** →
-  ```json
-  { "missingFields": ["..."], "recommendation": "...", "severity": "high|medium|low" }
-  ```
-
-### Subagent prompt
-
-The orchestrator spawns each subagent with
-`Analyze {key}. cloudId: {cloudId}. Contract: <absolute path to this file>` (step 7). The
-`core:work-triage-analyst` agent (read-only toolset, `model: opus`) reads this file and follows
-the instructions below; a `general-purpose` fallback gets the same prompt and does the same:
-
-> You are an isolated triage-analysis agent. Analyze one Jira ticket and return your result as a
-> single JSON object — **only** the JSON, no prose and no code fence.
->
-> **Make zero writes.** Do not edit the issue, add comments, post to Slack, add reactions, or
-> modify any file — read only. **Never fetch Graylog** (VPN/login-gated); if the ticket cites
-> Graylog or logs as evidence, set `graylogFlagNeeded: true` and move on.
->
-> 1. Fetch the issue with `mcp__claude_ai_Atlassian__getJiraIssue`, `cloudId: "{cloudId}"`,
->    `issueIdOrKey: "{key}"`, `responseContentFormat: "markdown"`, and `fields` including
->    `summary, description, status, issuetype, priority, labels, comment`. Read the summary,
->    description, issue type, status, priority, labels, and comments.
-> 2. Classify as exactly one of `bug | data-cleanup | needs-info` using the rubric above.
-> 3. Analyze per class:
->    - **bug** — search the product's checkout (cwd) with `mcp__serena__get_symbols_overview`
->      / `find_symbol` / `find_referencing_symbols` and `Grep` / `Glob` / `Read` to locate the
->      code involved (time-box it). Produce ≤3 ranked hypotheses (desc, confidence, rough
->      `estDiffLines`), the most-relevant files as `path:line`, the `reproducible` value by these
->      criteria — **`true`**: the ticket gives concrete repro steps *and* the identifiers/inputs
->      needed to trigger it (account / subscription / invoice / transaction id, config);
->      **`false`**: the trigger can't be recreated on demand (a one-off / transient event, or one
->      specific to a moment's environment, timing, or data state); **`unknown`**: the mechanism is
->      plausible but exact preconditions are missing, or the confirming evidence lives only in logs
->      / Graylog (never fetched) — an overall confidence, and the Graylog flag. Do **not** modify code.
->    - **data-cleanup** — from the **ticket text and comments** (do not query BigQuery): fill
->      `scope` with a ≤ ~15-word action summary (used verbatim in the Slack reply — be concise,
->      e.g. `void 2 refund transactions on the Acme site`); fill `affectedRecordsSummary`
->      with specific IDs/count (comments often narrow scope or add identifiers not in the
->      description — always read them); follow the ticket's explicit instruction for
->      `webhookSilenceRecommended`.
->    - **needs-info** — the missing fields, a recommendation (what to ask the reporter), a severity.
-> 4. Output the JSON result object exactly in the schema above (`jiraKey`, `summary`, `status`,
->    `labels`, `classification`, `rationale`, `analysis`). Nothing else.
-
+- `rootCause`: at most three, most likely first; empty for `needs-info`.
+- `filesToReview`: at most six, most relevant first.
+- `quickFix.kind` is `null` only when no kind applies.

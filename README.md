@@ -63,7 +63,7 @@ settings in place of its own. The rest exist only at work.
 | [`/core:work-god-mode`](./skills/work-god-mode/SKILL.md) | Work version of god-mode: the same front door for any non-trivial task, with every step that runs a skill running its work version where there is one (work-commit, work-create-pr… |
 | [`/core:work-implement`](./skills/work-implement/SKILL.md) | Ticket-to-implementation pipeline for work tickets, with two approval gates: fetches the Jira ticket and its governing constraints, writes a Scope Contract naming the non-goals, audits… |
 | [`/core:work-land`](./skills/work-land/SKILL.md) | Work version of land: verifies and merges the PR the same way, but shows the ready flip, the comment and the merge and waits for an OK first. |
-| [`/core:work-triage-escalations`](./skills/work-triage-escalations/SKILL.md) | Triage new escalation tickets that a bot posts in a Slack channel — poll the channel, extract each Jira key, classify the ticket (bug \| data-cleanup \| needs-info), analyze it, and draft… |
+| [`/core:work-triage-escalations`](./skills/work-triage-escalations/SKILL.md) | Runs the escalation triager's loop for one escalation at a time: lists the unclaimed escalations a bot posted in a Slack channel, claims one with 👀, analyzes the Jira ticket (root… |
 
 Agents: `core:review-architecture`, `core:review-backend`, `core:review-database`, `core:review-frontend`, `core:work-triage-analyst`.
 

@@ -27,8 +27,8 @@ step() {
 step "skills — frontmatter, size, links, agents, coupling, work versions" \
   node .github/scripts/validate-skills.mjs
 
-step "parse.mjs self-test" \
-  node skills/work-triage-escalations/scripts/parse.mjs --selftest
+step "queue.mjs self-test" \
+  node skills/work-triage-escalations/scripts/queue.mjs --selftest
 
 step "README is up to date (it is generated, never hand-edited)" \
   node .github/scripts/gen-readme.mjs --check
