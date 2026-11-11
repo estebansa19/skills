@@ -3,7 +3,7 @@ name: teach
 description: "Teaches a concept, a technology or a piece of code from scratch, assuming no prior knowledge, inside the time the user gives: theory first, then the smallest runnable example, then one new idea per step, one step per turn: each step built, run and shown, and 'next' continues. Diagrams where a picture explains it, bare-minimum code and real output where behavior does, and how real systems use it. For code in front of the user, runs how and why first. Asks no questions along the way. Use for 'teach me X', 'explain Y from scratch', 'I want to learn Z', 'compare A and B', a timed lab, or run /teach."
 compatibility: "Runs examples with the language's own runtime. Fans out through how and why on Claude Code."
 metadata:
-  version: "2.0"
+  version: "2.1"
 allowed-tools: Read, Grep, Glob, Write, WebSearch, WebFetch, Agent
 argument-hint: "[a concept, a source to learn from, or code to understand]"
 user-invocable: true
@@ -22,9 +22,13 @@ it).
 ## Fit the time
 
 - The time the user gives is the whole session, from your first message to the last, including
-  writing and running code. Plan the steps to fit it at a beginner's pace before writing anything.
-- Reading counts: at about 150 words a minute, a 10-minute session holds about 1,000 words of
-  text in all, fewer when code takes long to run.
+  the wait while each turn is written and its code runs. Plan the steps to fit it at a beginner's
+  pace before writing anything.
+- Plan in turns: a turn takes the user about two minutes, the wait for it included, so a 5-minute
+  lesson is three turns (the theory, one step, the close) and a 10-minute one is five. Keep each
+  turn to about 150 words, code and output included.
+- Show the plan as one line, each turn with its minutes. A turn that runs long drops its least
+  important part; it never takes time from the turns after it.
 - When the request holds more than fits, teach the core in depth and drop the rest. Say in the
   first message what you dropped, as a follow-up session.
 
@@ -64,7 +68,9 @@ it).
    built. Never build the real application.
 7. **Connect it to their world** once the general idea is clear: their codebase, a tool they use,
    a system they've read about.
-8. **Close** with when to use it and when not, the common pitfalls, and where to go deeper.
+8. **Close** in about a minute, whatever the lesson's length: when to use it, when not, the
+   pitfall people hit first, and one place to go deeper. A longer lesson spends its extra time on
+   steps, not on the close.
 
 ## One step per turn
 
@@ -99,6 +105,8 @@ it).
   go deeper wherever the user points.
 - **Short paragraphs.** At most three sentences, one idea each. Three or more parallel items are a
   list or a table, not a paragraph.
+- **Say it once.** Don't repeat what an earlier turn said, such as the dropped topics or a
+  definition. Explain code with comments in it or with lines under it, not both.
 - **Make it click.** The concrete mechanism, not a metaphor or a preview of what's coming. Walk
   through what happens step by step. A list of functions and constants is reference, not teaching.
 - **Plain spoken English, tight not terse.** No framing labels ("the key insight", "TL;DR"), no
