@@ -50,11 +50,12 @@ fi
 # Claude Code's own validator is the authority on the manifests; `.` checks both. The one warning we accept
 # is the missing `version`: leaving it out is what makes installs track commits instead of
 # waiting for a bump (docs/install.md). Its "Plugin directory checks" section (icon, license)
-# is for submitting to Anthropic's plugin directory, which this marketplace doesn't do.
+# is for submitting to Anthropic's plugin directory, which this marketplace doesn't do. Its
+# "Provides:" list (2.1.328+) marks each skill and agent with the same ❯ as a warning.
 plugin_validate() {
   local out rc=0
   out="$(claude plugin validate . 2>&1)" || { printf '%s\n' "$out"; return 1; }
-  if printf '%s\n' "$out" | sed '/^Plugin directory checks for /,$d' | grep '❯' \
+  if printf '%s\n' "$out" | sed -e '/^Provides:/,$d' -e '/^Plugin directory checks for /,$d' | grep '❯' \
     | grep -v 'version: No version specified' | grep -q .; then
     printf '%s\n' "$out"; rc=1
   fi
