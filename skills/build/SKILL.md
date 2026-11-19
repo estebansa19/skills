@@ -28,8 +28,8 @@ the directory has no code yet; otherwise it is a change to this repo.
    waiting. When the request can be read more than one way, settle it from the code or a quick
    run; if that can't, take the likelier reading and say which.
 3. Make the change. Add or update a test when behaviour changes.
-4. Run the tests and the linter. Fix what your change broke; after three failed attempts, stop
-   and say what is failing.
+4. Run the tests and the linter, unless the change is docs only. Fix what your change broke;
+   after three failed attempts, stop and say what is failing.
 5. Tell the user what changed and how you verified it.
 
 ## A new project

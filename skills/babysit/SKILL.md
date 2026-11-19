@@ -82,8 +82,9 @@ then reply with the evidence and leave the thread for them.
 
 Never skip or disable a check, and never weaken a test to get it green.
 
-**Push.** Run the tests locally, commit with the `commit` skill's message rules, and `git push`.
-Then reply to the threads, citing the commit. Write each reply body to a JSON file and post it with
+**Push.** Run the tests locally unless the fix is docs only, commit with the `commit` skill's
+message rules, and `git push`. Then reply to the threads, citing the commit. Write each reply
+body to a JSON file and post it with
 `gh api --method POST repos/<owner>/<repo>/pulls/<n>/comments/<comment-id>/replies --input <file>`.
 With `publish_approval` = `ask`, show every reply and every thread you would resolve, and wait for
 an OK first. Resolve a thread only when an automated reviewer opened it; a human's thread is theirs
