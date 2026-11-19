@@ -1,7 +1,8 @@
 ### Ship
 
 1. Commit what is left with the `commit` skill.
-2. Prove It Works one last time: the full test suite and linter on the final branch.
+2. Prove It Works one last time: the full test suite and linter on the final branch. Skip it when
+   they passed after the last code change; CI runs them on the PR either way.
 3. Run the `create-pr` skill. Its `publish_approval` setting decides whether it waits for an OK
    before pushing.
 4. When the user asked to get it green or merged, run the babysit playbook in drive mode.
