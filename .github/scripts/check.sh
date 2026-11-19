@@ -30,6 +30,9 @@ step "skills — frontmatter, size, links, agents, coupling, work versions" \
 step "queue.mjs self-test" \
   node skills/work-triage-escalations/scripts/queue.mjs --selftest
 
+step "classify.mjs self-test" \
+  node skills/land/scripts/classify.mjs --selftest
+
 step "README is up to date (it is generated, never hand-edited)" \
   node .github/scripts/gen-readme.mjs --check
 

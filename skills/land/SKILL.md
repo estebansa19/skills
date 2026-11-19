@@ -1,10 +1,10 @@
 ---
 name: land
-description: "Merges a GitHub PR once it is verified, without asking again: checks it is merge-ready (running babysit first when it is not), has a fresh agent that did not write the change verify the PR's head by running the tests and the changed behavior the way a user would, merges with the repo's usual method only on a PASS and only if the head hasn't moved, then reads the PR back to confirm it merged. The request to merge is the authorization; with publish_approval set to ask, it confirms before commenting, marking a draft ready or merging. Use for 'merge it once everything looks right', 'babysit the PR and merge it', 'land this PR', 'ship it', 'merge when green', or run /land."
-compatibility: "Requires git and the gh CLI, authenticated (gh auth status). Verifies with a subagent on Claude Code and inline elsewhere."
+description: "Merges a GitHub PR once it is verified, without asking again: checks it is merge-ready (running babysit first when it is not), sizes the check to the diff with a script (a docs-only PR merges on green CI; for code, a fresh agent that did not write the change verifies the PR's head by running the tests and the changed behavior the way a user would), merges with the repo's usual method only on a PASS and only if the head hasn't moved, then reads the PR back to confirm it merged. The request to merge is the authorization; with publish_approval set to ask, it confirms before commenting, marking a draft ready or merging. Use for 'merge it once everything looks right', 'babysit the PR and merge it', 'land this PR', 'ship it', 'merge when green', or run /land."
+compatibility: "Requires git, Node 18+ for scripts/classify.mjs, and the gh CLI, authenticated (gh auth status). Verifies with a subagent on Claude Code and inline elsewhere."
 metadata:
   version: "1.0"
-allowed-tools: Bash(git status:*), Bash(git fetch:*), Bash(git log:*), Bash(git worktree:*), Bash(git switch:*), Bash(git pull --ff-only:*), Bash(git branch -d:*), Bash(gh pr view:*), Bash(gh pr checks:*), Bash(gh pr diff:*), Bash(gh pr ready:*), Bash(gh pr comment:*), Bash(gh pr merge:*), Bash(gh repo view:*), Bash(gh api:*), Read, Grep, Glob, Agent
+allowed-tools: Bash(git status:*), Bash(git fetch:*), Bash(git log:*), Bash(git worktree:*), Bash(git switch:*), Bash(git pull --ff-only:*), Bash(git branch -d:*), Bash(gh pr view:*), Bash(gh pr checks:*), Bash(gh pr diff:*), Bash(gh pr ready:*), Bash(gh pr comment:*), Bash(gh pr merge:*), Bash(gh repo view:*), Bash(gh api:*), Bash(node ${CLAUDE_SKILL_DIR}/scripts/classify.mjs *), Read, Grep, Glob, Agent
 argument-hint: "[PR number or URL]"
 user-invocable: true
 disable-model-invocation: true
@@ -13,8 +13,8 @@ disable-model-invocation: true
 # Land
 
 Merge one PR, but only after someone other than its author has run it and only on the exact code
-that was checked. Green CI and an approving bot review are not a verdict: neither runs the change
-the way a user would.
+that was checked. Green CI and an approving bot review are not a verdict for code: neither runs the
+change the way a user would. A docs-only diff has nothing to run, so green CI is its verdict.
 
 Let `<dir>` be the directory holding this SKILL.md (`${CLAUDE_SKILL_DIR}` where the harness sets
 it).
@@ -37,20 +37,26 @@ gh pr view <n> --json number,url,isDraft,baseRefName,headRefOid,mergeStateStatus
 - **Waiting on a required human review:** stop and report. That is not yours to bypass.
 - **A draft** gets marked ready in step 3, once it is verified.
 
-## 2. Verify independently
+## 2. Verify, sized to the diff
 
-Spawn one `general-purpose` agent that did not write the change. Give it the PR URL, the base,
-the head SHA from step 1, and this brief:
+```bash
+node <dir>/scripts/classify.mjs <n>
+```
 
-- Check the head SHA out in its own worktree (`git worktree add <scratch>/verify <sha>`); commit,
-  push, comment and merge nothing.
-- Run the repo's tests and linter.
-- Exercise what the PR changes the way a user would: run the CLI, call the endpoint, load the page,
-  run the skill on a real task. Compare against the base when the change is a difference in
-  behavior.
-- Return `PASS`, `PASS+NOTES` or `FAIL`, with the commands it ran and their output.
+- **`docs`:** nothing in the diff runs, and step 1 found CI green on this head. That is the
+  verdict: `PASS`, by CI and the classifier. Skip the agent and the worktree.
+- **`code`:** spawn one `general-purpose` agent that did not write the change. Give it the PR URL,
+  the base, the head SHA from step 1, and this brief:
+  - Check the head SHA out in its own worktree (`git worktree add <scratch>/verify <sha>`);
+    commit, push, comment and merge nothing.
+  - Run the repo's tests and linter.
+  - Exercise what the PR changes the way a user would: run the CLI, call the endpoint, load the
+    page, run the skill on a real task. Compare against the base when the change is a difference
+    in behavior.
+  - Return `PASS`, `PASS+NOTES` or `FAIL`, with the commands it ran and their output.
 
-Without an Agent tool, do this yourself in a clean worktree and say the verdict is not independent.
+  Without an Agent tool, do this yourself in a clean worktree and say the verdict is not
+  independent.
 
 - **FAIL:** don't merge and don't comment. Hand the findings to babysit to fix, then verify the new
   head again.
