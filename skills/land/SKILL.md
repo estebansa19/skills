@@ -53,14 +53,29 @@ node <dir>/scripts/classify.mjs <n>
   - Exercise what the PR changes the way a user would: run the CLI, call the endpoint, load the
     page, run the skill on a real task. Compare against the base when the change is a difference
     in behavior.
-  - Return `PASS`, `PASS+NOTES` or `FAIL`, with the commands it ran and their output.
+  - Return `PASS`, `PASS+NOTES` or `FAIL` by the bar below, with the commands it ran and their
+    output.
 
   Without an Agent tool, do this yourself in a clean worktree and say the verdict is not
   independent.
 
+**The bar.** A finding is a `FAIL` only when a command reproduces it on the head and it is one of:
+
+- a test or the linter fails;
+- what the PR adds or changes, used through the interface it defines (including wrong values for
+  the options, parameters or fields it adds: missing, malformed, out of range), gives a wrong
+  result: wrong output, success on bad input, lost or corrupted data, or an uncaught crash;
+- behavior the PR didn't set out to change differs from the base;
+- a security hole.
+
+Everything else is a note: input forms the PR never claimed (another spelling of a flag, a
+repeated flag), visible design choices, missing tests for code that works, style, problems the
+base has too, and anything you couldn't make happen.
+
 - **FAIL:** don't merge and don't comment. Hand the findings to babysit to fix, then verify the new
   head again.
-- **PASS** or **PASS+NOTES:** go on to step 3, and carry any notes into the report.
+- **PASS** or **PASS+NOTES:** check each note against the bar; one that meets it makes the verdict
+  `FAIL`. Otherwise go on to step 3, and carry any notes into the report.
 
 ## 3. Publish the verdict and merge
 
